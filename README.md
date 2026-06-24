@@ -123,20 +123,6 @@ Successfully tested on Linux with multi-gigabyte torrents.
 
 ---
 
-## Future Roadmap
-
-* Magnet Link Support
-* DHT (Distributed Hash Table)
-* Peer Exchange (PEX)
-* Upload / Seeding Support
-* Torrent Search Integration
-* Windows Installer
-* macOS Support
-* Web Interface
-* Plugin System
-
----
-
 ## Technologies Used
 
 * Python
