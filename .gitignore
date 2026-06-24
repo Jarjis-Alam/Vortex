@@ -13,3 +13,11 @@ venv/
 .env
 
 progress.json
+*.bin
+*.iso
+progress.json
+__pycache__/
+*.pyc
+dist/
+build/
+venv/
