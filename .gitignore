@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+dist/
+build/
+
+*.iso
+*.torrent
+
+venv/
+.env
+
+progress.json
