@@ -50,13 +50,21 @@ class DownloadManager:
         peers,
         torrent,
         output_file,
-        num_workers=5
+        num_workers=5,
+        sequential=False,
+        skip_hash=False,
+        bandwidth_limit=0,
+        max_connections=50
     ):
 
         self.peers = peers
         self.torrent = torrent
         self.output_file = output_file
         self.num_workers = num_workers
+        self.sequential = sequential
+        self.skip_hash = skip_hash
+        self.bandwidth_limit = bandwidth_limit
+        self.max_connections = max_connections
 
         self.piece_count = (
             torrent.get_piece_count()
@@ -98,9 +106,38 @@ class DownloadManager:
         self.pause_event.set()
         self.log_callback = None
 
+        # Token Bucket rate limiter for bandwidth throttling
+        self.downloaded_tokens = 0
+        self.token_lock = threading.Lock()
+        self.last_token_time = time.time()
+
         # Initialize Peer Pool
-        pool_size = max(15, self.num_workers + 5)
+        pool_size = max(15, self.max_connections if self.max_connections else (self.num_workers + 5))
         self.pool = PeerPool(self.peers, self.torrent, pool_size=pool_size)
+
+    def throttle(self, bytes_count):
+        if not self.bandwidth_limit or self.bandwidth_limit <= 0:
+            return
+        
+        with self.token_lock:
+            now = time.time()
+            elapsed = now - self.last_token_time
+            self.last_token_time = now
+            
+            # rate = bandwidth_limit * 1024 bytes/sec
+            self.downloaded_tokens += elapsed * (self.bandwidth_limit * 1024)
+            # Cap maximum accumulated tokens (e.g. 5 seconds worth of bandwidth)
+            max_tokens = self.bandwidth_limit * 1024 * 5
+            if self.downloaded_tokens > max_tokens:
+                self.downloaded_tokens = max_tokens
+                
+            self.downloaded_tokens -= bytes_count
+            
+            if self.downloaded_tokens < 0:
+                sleep_duration = -self.downloaded_tokens / (self.bandwidth_limit * 1024)
+                if sleep_duration > 0.001:
+                    time.sleep(min(sleep_duration, 2.0))
+                    self.last_token_time = time.time()
 
     def log(self, msg):
         """Thread-safe print."""
@@ -204,6 +241,9 @@ class DownloadManager:
 
     def verify_existing_pieces(self):
         """Verify hashes of already downloaded pieces on startup."""
+        if getattr(self, "skip_hash", False):
+            self.log("Skip hash check enabled. Skipping startup integrity check.")
+            return
         if not self.completed or not os.path.exists(self.output_file):
             return
         
@@ -259,15 +299,19 @@ class DownloadManager:
             if not candidates:
                 return None
             
-            # Count how many active peers have each candidate piece index
-            rarity_scores = {}
-            for p_idx in candidates:
-                rarity_scores[p_idx] = self.pool.count_peers_with_piece(p_idx)
+            if getattr(self, "sequential", False):
+                candidates.sort()
+                selected = candidates[0]
+            else:
+                # Count how many active peers have each candidate piece index
+                rarity_scores = {}
+                for p_idx in candidates:
+                    rarity_scores[p_idx] = self.pool.count_peers_with_piece(p_idx)
+                
+                # Sort by rarity (ascending score, rarer first)
+                candidates.sort(key=lambda x: rarity_scores[x])
+                selected = candidates[0]
             
-            # Sort by rarity (ascending score, rarer first)
-            candidates.sort(key=lambda x: rarity_scores[x])
-            
-            selected = candidates[0]
             self.remaining_pieces.remove(selected)
             return selected
 
@@ -327,15 +371,15 @@ class DownloadManager:
             if peer_stats:
                 avg_speed = peer_stats['average_speed']  # in MB/s
                 if avg_speed < 0.05:     # < 50 KB/s
-                    pipeline_size = 8
+                    pipeline_size = 16
                 elif avg_speed > 2.0:    # > 2 MB/s
-                    pipeline_size = 128
+                    pipeline_size = 256
                 elif avg_speed > 0.5:    # > 500 KB/s
-                    pipeline_size = 64
+                    pipeline_size = 128
                 else:
-                    pipeline_size = 32
+                    pipeline_size = 64
             else:
-                pipeline_size = 32
+                pipeline_size = 64
 
             # Try downloading
             piece = None
@@ -408,6 +452,8 @@ class DownloadManager:
             with self.stats_lock:
                 self.session_bytes += len(piece)
                 session_bytes = self.session_bytes
+
+            self.throttle(len(piece))
 
             # Slow peer detection: if average speed for this piece is < 50 KB/s
             speed_mb = (len(piece) / (1024 * 1024)) / download_elapsed if download_elapsed > 0 else 0

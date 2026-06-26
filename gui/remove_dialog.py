@@ -280,7 +280,7 @@ class RemoveTorrentDialog(QDialog):
         self._update_warning(self.chk_delete_data.isChecked())
         
     def _update_warning(self, checked):
-        self.icon_widget.set_use_circle(not checked)
+        self.icon_widget.set_use_circle(True)
         if checked:
             self.warning_lbl.setText("This will remove the torrent and permanently delete all downloaded files from your disk. This action is irreversible.")
             self.warning_lbl.setStyleSheet("font-family: 'Inter', sans-serif; font-size: 12px; color: #EF4444; font-weight: 500;")

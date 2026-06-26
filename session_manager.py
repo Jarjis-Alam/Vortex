@@ -52,7 +52,11 @@ class SessionManager:
                 "progress_file": progress_file,
                 "added_time": getattr(task, "added_time", datetime.datetime.now().isoformat()),
                 "magnet_uri": task.magnet_uri,
-                "info_hash": info_hash
+                "info_hash": info_hash,
+                "sequential": getattr(task, "sequential", False),
+                "skip_hash": getattr(task, "skip_hash", False),
+                "max_connections": getattr(task, "max_connections", 50),
+                "bandwidth_limit": getattr(task, "bandwidth_limit", 0)
             })
             
         ui_state = {}

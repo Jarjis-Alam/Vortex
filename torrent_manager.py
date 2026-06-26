@@ -45,12 +45,17 @@ class MagnetTorrent:
         return bytes.fromhex(self.info_hash_str)
 
 class TorrentTask:
-    def __init__(self, torrent_path=None, save_dir=".", magnet_uri=None):
+    def __init__(self, torrent_path=None, save_dir=".", magnet_uri=None, sequential=False, skip_hash=False, max_connections=50, bandwidth_limit=0):
         self.torrent_path = torrent_path
         self.save_dir = save_dir
         self.magnet_uri = magnet_uri
         self.is_magnet = magnet_uri is not None
         self.added_time = datetime.datetime.now().isoformat()
+        
+        self.sequential = sequential
+        self.skip_hash = skip_hash
+        self.max_connections = max_connections
+        self.bandwidth_limit = bandwidth_limit
         
         # Managers setup
         self.manager = None
@@ -85,11 +90,17 @@ class TorrentTask:
             return
         if self.is_magnet:
             return
+        
+        num_workers = min(self.max_connections, 35) if self.max_connections else 25
         self.manager = DownloadManager(
             [], # Empty initially
             self.torrent,
             self.output_filename,
-            num_workers=10
+            num_workers=num_workers,
+            sequential=self.sequential,
+            skip_hash=self.skip_hash,
+            bandwidth_limit=self.bandwidth_limit,
+            max_connections=self.max_connections
         )
         self.manager.load_progress()
             
@@ -375,7 +386,7 @@ class TorrentTask:
             
             self.manager.peers = peers
             from peer_pool import PeerPool
-            pool_size = max(15, self.manager.num_workers + 5)
+            pool_size = max(15, self.max_connections if self.max_connections else (self.manager.num_workers + 5))
             self.manager.pool = PeerPool(peers, self.torrent, pool_size=pool_size)
             self.manager.shutdown_event.clear()
             self.manager.pause_event.set()
@@ -425,7 +436,7 @@ class TorrentManager:
     def __init__(self):
         self.tasks = []
         
-    def add_torrent(self, torrent_path, save_dir="."):
+    def add_torrent(self, torrent_path, save_dir=".", sequential=False, skip_hash=False, max_connections=50, bandwidth_limit=0):
         try:
             from session_manager import get_vortex_dir
             import shutil
@@ -443,11 +454,11 @@ class TorrentManager:
         for task in self.tasks:
             if task.torrent_path and os.path.abspath(task.torrent_path) == os.path.abspath(torrent_path):
                 return task
-        task = TorrentTask(torrent_path=torrent_path, save_dir=save_dir)
+        task = TorrentTask(torrent_path=torrent_path, save_dir=save_dir, sequential=sequential, skip_hash=skip_hash, max_connections=max_connections, bandwidth_limit=bandwidth_limit)
         self.tasks.append(task)
         return task
         
-    def add_magnet(self, magnet_uri, save_dir="."):
+    def add_magnet(self, magnet_uri, save_dir=".", sequential=False, skip_hash=False, max_connections=50, bandwidth_limit=0):
         from urllib.parse import parse_qs, urlparse
         parsed = parse_qs(urlparse(magnet_uri).query)
         info_hash_str = None
@@ -466,17 +477,17 @@ class TorrentManager:
                 if task.torrent.get_info_hash().lower() == info_hash_str.lower():
                     return task
                     
-        task = TorrentTask(save_dir=save_dir, magnet_uri=magnet_uri)
+        task = TorrentTask(save_dir=save_dir, magnet_uri=magnet_uri, sequential=sequential, skip_hash=skip_hash, max_connections=max_connections, bandwidth_limit=bandwidth_limit)
         self.tasks.append(task)
         return task
         
-    def restore_torrent(self, torrent_path, save_dir, status, added_time=None, magnet_uri=None):
+    def restore_torrent(self, torrent_path, save_dir, status, added_time=None, magnet_uri=None, sequential=False, skip_hash=False, max_connections=50, bandwidth_limit=0):
         for task in self.tasks:
             if magnet_uri and task.magnet_uri == magnet_uri:
                 return task
             if torrent_path and task.torrent_path and os.path.abspath(task.torrent_path) == os.path.abspath(torrent_path):
                 return task
-        task = TorrentTask(torrent_path=torrent_path, save_dir=save_dir, magnet_uri=magnet_uri)
+        task = TorrentTask(torrent_path=torrent_path, save_dir=save_dir, magnet_uri=magnet_uri, sequential=sequential, skip_hash=skip_hash, max_connections=max_connections, bandwidth_limit=bandwidth_limit)
         if added_time:
             task.added_time = added_time
         task.status = status

@@ -36,11 +36,13 @@ class PeerPool:
         self.supervisor_thread.start()
 
     def _supervisor_loop(self):
+        last_reset_time = 0
         while self.running:
             with self.lock:
                 needed = self.pool_size - (len(self.active_peers) + len(self.connecting))
                 
-                if needed > 0:
+                now = time.time()
+                if needed > 0 and self.peers and (now - last_reset_time > 15):
                     tries = 0
                     started_any = False
                     while tries < len(self.peers) and needed > 0:
@@ -60,8 +62,9 @@ class PeerPool:
                         tries += 1
                         
                     if not started_any and len(self.active_peers) == 0 and len(self.connecting) == 0:
-                        print("[PeerPool] All peers failed. Resetting failed list to try again.")
+                        print("[PeerPool] All peers failed. Backing off 15 seconds before retrying.")
                         self.failed_peers.clear()
+                        last_reset_time = now
             time.sleep(1)
 
     def _connect_worker(self, peer_tuple, peer_idx):

@@ -635,7 +635,10 @@ class AddTorrentDialog(QDialog):
         self.txt_bw_limit.setStyleSheet("padding: 6px;")
         self.txt_bw_limit.setFixedWidth(100)
         
-        self.txt_max_conn = QLineEdit("50")
+        max_conn_default = "200"
+        if parent and hasattr(parent, "page_settings") and hasattr(parent.page_settings, "saved_settings"):
+            max_conn_default = parent.page_settings.saved_settings.get("max_conn_torrent", "200")
+        self.txt_max_conn = QLineEdit(max_conn_default)
         self.txt_max_conn.setStyleSheet("padding: 6px;")
         self.txt_max_conn.setFixedWidth(100)
         
@@ -1249,6 +1252,7 @@ class StatusBadgeWidget(QWidget):
         super().__init__(parent)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setFixedHeight(24)
+        self.current_status = None
         
         layout = QHBoxLayout(self)
         layout.setContentsMargins(8, 0, 8, 0)
@@ -1274,6 +1278,9 @@ class StatusBadgeWidget(QWidget):
         layout.addWidget(self.badge_frame)
         
     def set_status(self, status, text=None, bg_color_unused=None, text_color_unused=None):
+        if self.current_status == status:
+            return
+        self.current_status = status
         bg_color = "#6B7280"
         text_color = "#FFFFFF"
         icon = "•"
@@ -2555,7 +2562,7 @@ class MainWindow(QMainWindow):
     def _clear_detail(self):
         d = self.detail
         d.lbl_name.setText("No torrent selected")
-        d.lbl_blocks.setText("░░░░░░░░░░ 0%")
+        d.lbl_progress_text.setText("0.00 MB / 0.00 MB | 0%")
         d.donut.set_value(0)
         for v in [d.v_save, d.v_size, d.v_pieces, d.v_hash, d.v_status,
                    d.v_downloaded, d.v_remaining, d.v_eta, d.v_added,
@@ -2565,10 +2572,10 @@ class MainWindow(QMainWindow):
         d.table_peers.setRowCount(0)
         d.piece_map.update_pieces(set(), 0)
         
-        d.v_health_stars.setText("☆☆☆☆☆")
-        d.v_health_stars.setStyleSheet("color: #6b7590; font-size: 20px; font-weight: bold; background: transparent; border: none;")
-        d.lbl_health_desc.setText("Inactive / No Selection")
-        d.lbl_health_desc.setStyleSheet("color: #6b7590; font-size: 13px; font-weight: bold; background: transparent; border: none;")
+        d.lbl_health_stars.setText("☆☆☆☆☆")
+        d.lbl_health_stars.setStyleSheet("color: #6b7590; font-size: 16px; background: transparent; border: none;")
+        d.lbl_health_status.setText("Inactive / No Selection")
+        d.lbl_health_status.setStyleSheet("color: #6b7590; font-size: 14px; font-weight: bold; background: transparent; border: none;")
 
     def _populate_files(self, task):
         tree = self.detail.tree_files
@@ -2822,10 +2829,29 @@ class MainWindow(QMainWindow):
             is_magnet, source, dest = dlg.get_data()
             if not source:
                 return
+            seq, skip, bw, max_conn = False, False, 0, 50
+            if hasattr(dlg, "get_advanced_data"):
+                try:
+                    s_seq, s_skip, s_bw, s_max_conn = dlg.get_advanced_data()
+                    seq = s_seq
+                    skip = s_skip
+                    if s_bw.isdigit():
+                        bw = int(s_bw)
+                    if s_max_conn.isdigit():
+                        max_conn = int(s_max_conn)
+                except Exception:
+                    pass
             if is_magnet:
-                self._process_magnet(source, dest)
+                self._process_magnet(source, dest, seq, skip, bw, max_conn)
             else:
                 task = self.manager.add_torrent(source, dest)
+                task.sequential = seq
+                task.skip_hash = skip
+                task.bandwidth_limit = bw
+                task.max_connections = max_conn
+                if hasattr(task, "manager") and task.manager:
+                    task.manager = None
+                task.setup_manager()
                 self.log(f"Adding torrent: {os.path.basename(source)}")
                 task.start()
                 self.selected_task = task
@@ -2843,10 +2869,29 @@ class MainWindow(QMainWindow):
             is_magnet, source, dest = dlg.get_data()
             if not source:
                 return
+            seq, skip, bw, max_conn = False, False, 0, 50
+            if hasattr(dlg, "get_advanced_data"):
+                try:
+                    s_seq, s_skip, s_bw, s_max_conn = dlg.get_advanced_data()
+                    seq = s_seq
+                    skip = s_skip
+                    if s_bw.isdigit():
+                        bw = int(s_bw)
+                    if s_max_conn.isdigit():
+                        max_conn = int(s_max_conn)
+                except Exception:
+                    pass
             if is_magnet:
-                self._process_magnet(source, dest)
+                self._process_magnet(source, dest, seq, skip, bw, max_conn)
             else:
                 task = self.manager.add_torrent(source, dest)
+                task.sequential = seq
+                task.skip_hash = skip
+                task.bandwidth_limit = bw
+                task.max_connections = max_conn
+                if hasattr(task, "manager") and task.manager:
+                    task.manager = None
+                task.setup_manager()
                 self.log(f"Adding torrent: {os.path.basename(source)}")
                 task.start()
                 self.selected_task = task
@@ -2861,11 +2906,27 @@ class MainWindow(QMainWindow):
         if dlg.exec() == QDialog.DialogCode.Accepted:
             is_magnet, source, dest = dlg.get_data()
             if source:
-                self._process_magnet(source, dest)
+                seq, skip, bw, max_conn = False, False, 0, 50
+                if hasattr(dlg, "get_advanced_data"):
+                    try:
+                        s_seq, s_skip, s_bw, s_max_conn = dlg.get_advanced_data()
+                        seq = s_seq
+                        skip = s_skip
+                        if s_bw.isdigit():
+                            bw = int(s_bw)
+                        if s_max_conn.isdigit():
+                            max_conn = int(s_max_conn)
+                    except Exception:
+                        pass
+                self._process_magnet(source, dest, seq, skip, bw, max_conn)
 
-    def _process_magnet(self, uri, sd):
+    def _process_magnet(self, uri, sd, seq=False, skip=False, bw=0, max_conn=50):
         task = self.manager.add_magnet(uri, sd)
         if task:
+            task.sequential = seq
+            task.skip_hash = skip
+            task.bandwidth_limit = bw
+            task.max_connections = max_conn
             task.start()
             self.selected_task = task
             self._populate_files(task)
@@ -2900,7 +2961,19 @@ class MainWindow(QMainWindow):
                 if dlg.exec() == QDialog.DialogCode.Accepted:
                     is_magnet, source, dest = dlg.get_data()
                     if source:
-                        self._process_magnet(source, dest)
+                        seq, skip, bw, max_conn = False, False, 0, 50
+                        if hasattr(dlg, "get_advanced_data"):
+                            try:
+                                s_seq, s_skip, s_bw, s_max_conn = dlg.get_advanced_data()
+                                seq = s_seq
+                                skip = s_skip
+                                if s_bw.isdigit():
+                                    bw = int(s_bw)
+                                if s_max_conn.isdigit():
+                                    max_conn = int(s_max_conn)
+                            except Exception:
+                                pass
+                        self._process_magnet(source, dest, seq, skip, bw, max_conn)
 
     def _show_about(self):
         dlg = AboutDialog(self)
@@ -2979,12 +3052,21 @@ class MainWindow(QMainWindow):
                     self.log(f"Warning: Torrent file not found for session entry: {t_file}")
                     continue
                 
+                seq = t_data.get("sequential", False)
+                skip = t_data.get("skip_hash", False)
+                max_conn = t_data.get("max_connections", 50)
+                bw = t_data.get("bandwidth_limit", 0)
+
                 task = self.manager.restore_torrent(
                     torrent_path=t_file,
                     save_dir=save_path,
                     status=status,
                     added_time=added_time,
-                    magnet_uri=magnet_uri
+                    magnet_uri=magnet_uri,
+                    sequential=seq,
+                    skip_hash=skip,
+                    max_connections=max_conn,
+                    bandwidth_limit=bw
                 )
                 
                 if not task.is_magnet:

@@ -48,6 +48,12 @@ class PeerConnection:
                 4 * 1024 * 1024
             )
 
+            self.sock.setsockopt(
+                socket.IPPROTO_TCP,
+                socket.TCP_NODELAY,
+                1
+            )
+
             print("Connected!")
 
             return True
