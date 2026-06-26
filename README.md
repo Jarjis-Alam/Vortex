@@ -10,6 +10,7 @@ Vortex implements the BitTorrent protocol from the ground up, including tracker 
 
 ![Vortex UI](assets/screenshots/VORTEX1.png)
 ![Vortex UI](assets/screenshots/VORTEX2.png)
+![Vortex UI](assets/screenshots/VORTEX3.png)
 
 ---
 
