@@ -47,6 +47,7 @@ def run_gui():
         from PyQt6.QtWidgets import QApplication
         from PyQt6.QtGui import QIcon
         from gui.main_window import MainWindow
+        from gui.splash_screen import SplashScreen
         
         app = QApplication(sys.argv)
         app.setDesktopFileName("vortex")
@@ -55,9 +56,14 @@ def run_gui():
         if os.path.exists(logo_path):
             app.setWindowIcon(QIcon(logo_path))
             
-        window = MainWindow()
-        window.show()
-        sys.exit(app.exec())
+        # Display splash loading screen
+        splash = SplashScreen()
+        if splash.exec() == SplashScreen.DialogCode.Accepted:
+            window = MainWindow()
+            window.show()
+            sys.exit(app.exec())
+        else:
+            sys.exit(0)
     except Exception as e:
         print(f"Failed to start GUI: {e}")
         print("Falling back to CLI mode...")

@@ -44,7 +44,11 @@ class Torrent:
         ).hexdigest()
     def get_size(self):
 
-        return self.info[b'length']
+        if b'length' in self.info:
+            return self.info[b'length']
+        elif b'files' in self.info:
+            return sum(f[b'length'] for f in self.info[b'files'])
+        return 0
     def get_piece_hash(self, index):
 
         pieces = self.info[b'pieces']

@@ -1,9 +1,10 @@
 import os
+import shutil
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QFrame, QSizePolicy
+    QFrame, QProgressBar
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QSize
+from PyQt6.QtCore import Qt, pyqtSignal, QSize, QPropertyAnimation, QRect, QTimer
 from PyQt6.QtGui import QIcon, QPixmap, QFont
 
 
@@ -19,10 +20,12 @@ class SidebarItem(QPushButton):
         self._update_text()
 
     def _update_text(self):
+        base = self.text().strip().split('  ')[-1] if '  ' in self.text() else self.text().strip()
+        if " (" in base:
+            base = base.split(" (")[0]
         if self.badge_count > 0:
-            self.setText(f"  {self.icon_char}  {self.text().strip().split('  ')[-1] if '  ' in self.text() else self.text().strip()}")
+            self.setText(f"  {self.icon_char}  {base} ({self.badge_count})")
         else:
-            base = self.text().strip().split('  ')[-1] if '  ' in self.text() else self.text().strip()
             self.setText(f"  {self.icon_char}  {base}")
 
     def set_badge(self, count):
@@ -58,14 +61,20 @@ class Sidebar(QWidget):
         logo_layout.addStretch()
         layout.addLayout(logo_layout)
 
+        # Indicator behind selected items
+        self.indicator = QWidget(self)
+        self.indicator.setStyleSheet("background-color: rgba(37, 99, 235, 0.12); border-radius: 10px; border-left: 3px solid #2563eb;")
+        self.indicator.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        self.indicator.hide()
+
         # Nav items
         self.items = {}
         nav_data = [
-            ("Torrents", "📥", 0),
-            ("Downloading", "⬇", 0),
-            ("Completed", "✅", 0),
-            ("Active", "🔵", 0),
-            ("Inactive", "⏹", 0),
+            ("Torrents", "📂", 0),
+            ("Downloading", "↓", 0),
+            ("Completed", "✓", 0),
+            ("Active", "●", 0),
+            ("Inactive", "■", 0),
         ]
         for name, icon, badge in nav_data:
             item = SidebarItem(name, badge, icon, self)
@@ -81,12 +90,12 @@ class Sidebar(QWidget):
         layout.addWidget(sep)
 
         nav_data2 = [
-            ("Labels", "🏷"),
-            ("Feeds", "📡"),
-            ("Devices", "💻"),
+            ("Labels", "🏷", 0),
+            ("Feeds", "📡", 0),
+            ("Devices", "💻", 0),
         ]
-        for name, icon in nav_data2:
-            item = SidebarItem(name, 0, icon, self)
+        for name, icon, badge in nav_data2:
+            item = SidebarItem(name, badge, icon, self)
             item.setObjectName(f"nav_{name.lower()}")
             item.clicked.connect(lambda checked, n=name: self._on_clicked(n))
             layout.addWidget(item)
@@ -98,12 +107,12 @@ class Sidebar(QWidget):
         layout.addWidget(sep2)
 
         nav_data3 = [
-            ("Settings", "⚙"),
-            ("Statistics", "📊"),
-            ("About", "ℹ"),
+            ("Settings", "⚙", 0),
+            ("Statistics", "📊", 0),
+            ("About", "ℹ", 0),
         ]
-        for name, icon in nav_data3:
-            item = SidebarItem(name, 0, icon, self)
+        for name, icon, badge in nav_data3:
+            item = SidebarItem(name, badge, icon, self)
             item.setObjectName(f"nav_{name.lower()}")
             item.clicked.connect(lambda checked, n=name: self._on_clicked(n))
             layout.addWidget(item)
@@ -111,47 +120,101 @@ class Sidebar(QWidget):
 
         layout.addStretch()
 
-        # Pro promo
-        pro_frame = QFrame()
-        pro_frame.setObjectName("proFrame")
-        pro_layout = QVBoxLayout(pro_frame)
-        pro_layout.setContentsMargins(14, 14, 14, 14)
-        pro_layout.setSpacing(8)
+        # Storage Card instead of Pro
+        self.storage_frame = QFrame()
+        self.storage_frame.setObjectName("proFrame")
+        self.storage_layout = QVBoxLayout(self.storage_frame)
+        self.storage_layout.setContentsMargins(14, 14, 14, 14)
+        self.storage_layout.setSpacing(6)
 
-        pro_header = QHBoxLayout()
-        pro_title = QLabel("Vortex Pro")
-        pro_title.setObjectName("proTitle")
-        pro_close = QLabel("×")
-        pro_close.setObjectName("proClose")
-        pro_header.addWidget(pro_title)
-        pro_header.addStretch()
-        pro_header.addWidget(pro_close)
-        pro_layout.addLayout(pro_header)
+        # Header layout with title and "..."
+        lbl_title_layout = QHBoxLayout()
+        lbl_title = QLabel("Disk Storage")
+        lbl_title.setStyleSheet("font-weight: bold; color: #ffffff; font-size: 13px; background: transparent;")
+        lbl_dots = QLabel("•••")
+        lbl_dots.setStyleSheet("color: #6b7590; font-size: 14px; background: transparent;")
+        lbl_title_layout.addWidget(lbl_title)
+        lbl_title_layout.addStretch()
+        lbl_title_layout.addWidget(lbl_dots)
+        self.storage_layout.addLayout(lbl_title_layout)
 
-        pro_desc = QLabel("Unlock advanced features and\nsupport development.")
-        pro_desc.setObjectName("proDesc")
-        pro_desc.setWordWrap(True)
-        pro_layout.addWidget(pro_desc)
+        # Content layout (Donut + stats side-by-side)
+        h_layout = QHBoxLayout()
+        h_layout.setSpacing(12)
 
-        go_pro_btn = QPushButton("Go Pro")
-        go_pro_btn.setObjectName("goProBtn")
-        go_pro_btn.setFixedHeight(42)
-        go_pro_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        pro_layout.addWidget(go_pro_btn)
+        # Mini circular donut chart
+        from gui.donut_chart import DonutChart
+        self.storage_donut = DonutChart()
+        self.storage_donut.setFixedSize(48, 48)
+        self.storage_donut.color = "#2563eb"
+        h_layout.addWidget(self.storage_donut)
 
-        layout.addWidget(pro_frame)
+        # Vertical text labels
+        v_text_layout = QVBoxLayout()
+        v_text_layout.setSpacing(2)
+        self.lbl_free = QLabel("Free: —")
+        self.lbl_free.setStyleSheet("color: #8892a8; font-size: 11px; background: transparent; font-weight: 500;")
+        self.lbl_used = QLabel("Used: —")
+        self.lbl_used.setStyleSheet("color: #8892a8; font-size: 11px; background: transparent; font-weight: 500;")
+        self.lbl_total = QLabel("Total: —")
+        self.lbl_total.setStyleSheet("color: #8892a8; font-size: 11px; background: transparent; font-weight: 500;")
+        v_text_layout.addWidget(self.lbl_free)
+        v_text_layout.addWidget(self.lbl_used)
+        v_text_layout.addWidget(self.lbl_total)
+        h_layout.addLayout(v_text_layout)
+
+        self.storage_layout.addLayout(h_layout)
+        layout.addWidget(self.storage_frame)
 
         # Select Torrents by default
         self.items["Torrents"].setChecked(True)
+        QTimer.singleShot(100, self._init_indicator)
+        
+        # Periodic check for storage
+        self.storage_timer = QTimer(self)
+        self.storage_timer.timeout.connect(self._update_storage_usage)
+        self.storage_timer.start(5000)
+        self._update_storage_usage()
+
+    def _update_storage_usage(self):
+        try:
+            total, used, free = shutil.disk_usage(".")
+            free_gb = free / (1024**3)
+            used_gb = used / (1024**3)
+            total_gb = total / (1024**3)
+            pct = int((used / total) * 100)
+            
+            self.storage_donut.set_value(pct, False)
+            self.lbl_free.setText(f"Free: {free_gb:.1f} GB")
+            self.lbl_used.setText(f"Used: {used_gb:.1f} GB")
+            self.lbl_total.setText(f"Total: {total_gb:.1f} GB")
+        except Exception:
+            pass
+
+    def _init_indicator(self):
+        selected_item = self.items.get("Torrents")
+        if selected_item:
+            self.indicator.setGeometry(selected_item.geometry())
+            self.indicator.show()
 
     def _on_clicked(self, name):
         for key, item in self.items.items():
             item.setChecked(key == name)
+            
+        selected_item = self.items.get(name)
+        if selected_item:
+            self.anim = QPropertyAnimation(self.indicator, b"geometry")
+            self.anim.setDuration(180)
+            self.anim.setStartValue(self.indicator.geometry())
+            self.anim.setEndValue(selected_item.geometry())
+            self.anim.start()
+            self.indicator.show()
+            
         self.filter_changed.emit(name)
 
     def update_badges(self, total=0, downloading=0, completed=0, active=0, inactive=0):
-        self.items["Torrents"].badge_count = total
-        self.items["Downloading"].badge_count = downloading
-        self.items["Completed"].badge_count = completed
-        self.items["Active"].badge_count = active
-        self.items["Inactive"].badge_count = inactive
+        self.items["Torrents"].set_badge(total)
+        self.items["Downloading"].set_badge(downloading)
+        self.items["Completed"].set_badge(completed)
+        self.items["Active"].set_badge(active)
+        self.items["Inactive"].set_badge(inactive)

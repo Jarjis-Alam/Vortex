@@ -17,6 +17,17 @@ def safe_print(*args, **kwargs):
 
 print = safe_print
 
+def get_vortex_dir():
+    if sys.platform.startswith("win"):
+        base = os.environ.get("APPDATA")
+        if not base:
+            base = os.path.expanduser("~")
+        return os.path.join(base, "Vortex")
+    elif sys.platform.startswith("darwin"):
+        return os.path.expanduser("~/Library/Application Support/Vortex")
+    else:
+        return os.path.expanduser("~/.vortex")
+
 from piece_downloader import download_piece
 from peer_pool import PeerPool
 
@@ -56,7 +67,8 @@ class DownloadManager:
         self.total_size = (
             torrent.get_size()
         )
-        self.progress_file = "progress.json"
+        info_hash = torrent.get_info_hash()
+        self.progress_file = os.path.join(get_vortex_dir(), "progress", f"{info_hash}.json")
 
         # Dynamic Rarest-First Scheduler state
         self.remaining_pieces = set()
@@ -147,6 +159,26 @@ class DownloadManager:
                 f"pieces already done"
             )
 
+    def save_fastresume(self):
+        """Save fastresume data to file."""
+        if not os.path.exists(self.output_file):
+            return
+        try:
+            vortex_dir = get_vortex_dir()
+            info_hash = self.torrent.get_info_hash()
+            fastresume_path = os.path.join(vortex_dir, "fastresume", f"{info_hash}.resume")
+            
+            actual_size = os.path.getsize(self.output_file)
+            actual_mtime = os.path.getmtime(self.output_file)
+            
+            with open(fastresume_path, "w") as fr:
+                json.dump({
+                    "file_size": actual_size,
+                    "file_mtime": actual_mtime
+                }, fr)
+        except Exception as e:
+            self.log(f"Error saving fastresume: {e}")
+
     def save_progress(self):
         """Save completed pieces to file."""
         with self.completed_lock:
@@ -168,11 +200,30 @@ class DownloadManager:
                 },
                 f
             )
+        self.save_fastresume()
 
     def verify_existing_pieces(self):
         """Verify hashes of already downloaded pieces on startup."""
         if not self.completed or not os.path.exists(self.output_file):
             return
+        
+        # Try fast resume
+        vortex_dir = get_vortex_dir()
+        info_hash = self.torrent.get_info_hash()
+        fastresume_path = os.path.join(vortex_dir, "fastresume", f"{info_hash}.resume")
+        
+        if os.path.exists(fastresume_path) and os.path.exists(self.output_file):
+            try:
+                with open(fastresume_path, "r") as fr:
+                    fr_data = json.load(fr)
+                actual_size = os.path.getsize(self.output_file)
+                actual_mtime = os.path.getmtime(self.output_file)
+                if (fr_data.get("file_size") == actual_size and 
+                    abs(fr_data.get("file_mtime") - actual_mtime) < 2.0):
+                    self.log("Fast resume verified. Skipping integrity check.")
+                    return
+            except Exception as e:
+                self.log(f"Fast resume check failed: {e}. Falling back to full integrity check.")
         
         self.log("Performing startup integrity check on completed pieces...")
         verified = set()

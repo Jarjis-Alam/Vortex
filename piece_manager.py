@@ -3,6 +3,18 @@ import os
 import time
 import json
 import socket
+import sys
+
+def get_vortex_dir():
+    if sys.platform.startswith("win"):
+        base = os.environ.get("APPDATA")
+        if not base:
+            base = os.path.expanduser("~")
+        return os.path.join(base, "Vortex")
+    elif sys.platform.startswith("darwin"):
+        return os.path.expanduser("~/Library/Application Support/Vortex")
+    else:
+        return os.path.expanduser("~/.vortex")
 
 from piece_downloader import download_piece
 from peer_connector import connect_to_peer
@@ -35,7 +47,8 @@ def download_all_pieces(
 
     piece_count = torrent.get_piece_count()
     piece_length = torrent.get_piece_length()
-    progress_file = "progress.json"
+    info_hash = torrent.get_info_hash()
+    progress_file = os.path.join(get_vortex_dir(), "progress", f"{info_hash}.json")
 
     # Resume support
     start_piece = 0

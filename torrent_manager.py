@@ -1,6 +1,7 @@
 import os
 import threading
 import time
+import datetime
 from torrent import Torrent
 from peer import generate_peer_id
 from tracker_client import UDPTrackerClient
@@ -49,6 +50,7 @@ class TorrentTask:
         self.save_dir = save_dir
         self.magnet_uri = magnet_uri
         self.is_magnet = magnet_uri is not None
+        self.added_time = datetime.datetime.now().isoformat()
         
         # Managers setup
         self.manager = None
@@ -76,6 +78,20 @@ class TorrentTask:
             self.torrent = Torrent(torrent_path)
             self.output_filename = os.path.join(save_dir, self.torrent.get_name().decode('utf-8'))
             self.status = "Stopped"
+            self.setup_manager()
+
+    def setup_manager(self):
+        if self.manager is not None:
+            return
+        if self.is_magnet:
+            return
+        self.manager = DownloadManager(
+            [], # Empty initially
+            self.torrent,
+            self.output_filename,
+            num_workers=10
+        )
+        self.manager.load_progress()
             
     def start(self):
         if self.status in ("Downloading", "Checking", "Connecting...", "Finding Peers...", "Downloading Metadata..."):
@@ -159,7 +175,8 @@ class TorrentTask:
                     
             metadata_bytes = self._download_metadata_from_peers(peers)
             if metadata_bytes:
-                dest_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "resources")
+                from session_manager import get_vortex_dir
+                dest_dir = os.path.join(get_vortex_dir(), "torrents")
                 os.makedirs(dest_dir, exist_ok=True)
                 dest_torrent_path = os.path.join(dest_dir, f"{self.info_hash_str}.torrent")
                 
@@ -331,9 +348,10 @@ class TorrentTask:
         
     def _initialize_and_start(self):
         try:
+            self.setup_manager()
             self.tracker_client = UDPTrackerClient("tracker.opentrackr.org", 6969)
             connect_response = self.tracker_client.connect()
-            if self.status == "Stopped":
+            if self.status in ("Stopped", "Paused"):
                 return
             parsed_connect = self.tracker_client.parse_connect_response(connect_response)
             connection_id = parsed_connect["connection_id"]
@@ -344,28 +362,23 @@ class TorrentTask:
                 generate_peer_id(),
                 self.torrent.get_size()
             )
-            if self.status == "Stopped":
+            if self.status in ("Stopped", "Paused"):
                 return
             announce_response = self.tracker_client.announce(announce_packet)
-            if self.status == "Stopped":
+            if self.status in ("Stopped", "Paused"):
                 return
             parsed_announce = self.tracker_client.parse_announce_response(announce_response)
             peers = parsed_announce["peers"]
             
-            if self.status == "Stopped":
+            if self.status in ("Stopped", "Paused"):
                 return
             
-            self.manager = DownloadManager(
-                peers,
-                self.torrent,
-                self.output_filename,
-                num_workers=10
-            )
-            
-            if self.status == "Stopped":
-                self.manager.shutdown_event.set()
-                self.manager.pool.stop()
-                return
+            self.manager.peers = peers
+            from peer_pool import PeerPool
+            pool_size = max(15, self.manager.num_workers + 5)
+            self.manager.pool = PeerPool(peers, self.torrent, pool_size=pool_size)
+            self.manager.shutdown_event.clear()
+            self.manager.pause_event.set()
             
             self.status = "Downloading"
             self.worker = DownloadWorker(self.manager)
@@ -413,6 +426,20 @@ class TorrentManager:
         self.tasks = []
         
     def add_torrent(self, torrent_path, save_dir="."):
+        try:
+            from session_manager import get_vortex_dir
+            import shutil
+            t = Torrent(torrent_path)
+            info_hash = t.get_info_hash()
+            vortex_torrent_dir = os.path.join(get_vortex_dir(), "torrents")
+            os.makedirs(vortex_torrent_dir, exist_ok=True)
+            dest_path = os.path.join(vortex_torrent_dir, f"{info_hash}.torrent")
+            if os.path.abspath(torrent_path) != os.path.abspath(dest_path):
+                shutil.copy2(torrent_path, dest_path)
+            torrent_path = dest_path
+        except Exception as e:
+            print(f"Failed to copy torrent to internal dir: {e}")
+
         for task in self.tasks:
             if task.torrent_path and os.path.abspath(task.torrent_path) == os.path.abspath(torrent_path):
                 return task
@@ -443,6 +470,21 @@ class TorrentManager:
         self.tasks.append(task)
         return task
         
+    def restore_torrent(self, torrent_path, save_dir, status, added_time=None, magnet_uri=None):
+        for task in self.tasks:
+            if magnet_uri and task.magnet_uri == magnet_uri:
+                return task
+            if torrent_path and task.torrent_path and os.path.abspath(task.torrent_path) == os.path.abspath(torrent_path):
+                return task
+        task = TorrentTask(torrent_path=torrent_path, save_dir=save_dir, magnet_uri=magnet_uri)
+        if added_time:
+            task.added_time = added_time
+        task.status = status
+        if not task.is_magnet:
+            task.setup_manager()
+        self.tasks.append(task)
+        return task
+
     def remove_torrent(self, task):
         task.stop()
         if task in self.tasks:
