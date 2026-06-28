@@ -2621,7 +2621,7 @@ class MainWindow(QMainWindow):
         self.pulse_state = False
         
         self._init_ui()
-        self.change_theme("Liquid Glass")
+        self.change_theme("Vortex Glass")
         self._load_saved_session()
         
         self.timer = QTimer(self)
@@ -3100,13 +3100,13 @@ class MainWindow(QMainWindow):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         
-        theme_name = getattr(self, "current_theme", "Liquid Glass")
+        theme_name = getattr(self, "current_theme", "Vortex Glass")
         w = self.width()
         h = self.height()
         t = time.time()
         
-        if theme_name == "Liquid Glass":
-            # 1. Liquid Glass: Stunning Apple-like animated mesh gradient backdrop
+        if theme_name == "Vortex Glass":
+            # 1. Vortex Glass: Stunning Apple-like animated mesh gradient backdrop
             # Dark base
             painter.fillRect(self.rect(), QColor("#04050f"))
             

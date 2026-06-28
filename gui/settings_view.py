@@ -681,7 +681,7 @@ class SettingsView(QWidget):
             "max_active_downloads": "4",
             "preallocate_space": True,
             "sequential_download": False,
-            "theme": "Liquid Glass",
+            "theme": "Vortex Glass",
             "accent_color": "None (Use Theme Default)",
             "font_size": "14px",
             "animations": True,
@@ -1131,7 +1131,7 @@ class SettingsView(QWidget):
         
         # Theme Combobox
         self.theme_combo = QComboBox()
-        self.theme_combo.addItems(["Liquid Glass", "Midnight Blue", "Dracula", "AMOLED", "Nord", "Catppuccin", "Light"])
+        self.theme_combo.addItems(["Vortex Glass", "Midnight Blue", "Dracula", "AMOLED", "Nord", "Catppuccin", "Light"])
         self.theme_combo.setFixedWidth(160)
         row_theme = self._create_setting_row(
             "Theme",

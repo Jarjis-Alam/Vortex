@@ -44,8 +44,8 @@ Rather than wrapping existing libtorrent binaries, Vortex implements the entire 
 * **Bandwidth Throttling:** Built-in Token Bucket rate limiting to cap maximum download speed globally.
 
 ### 🎨 Desktop User Experience
-* **Liquid Glass Theme:** Premium Apple-style glassmorphism with dynamic animated multi-blob aurora gradients, translucent cards, and frosted panel layouts.
-* **Custom Theme Presets:** Choose from Liquid Glass, Midnight Blue, Dracula, Nord, Catppuccin, AMOLED, and Light, with support for custom accent overrides.
+* **Vortex Glass Theme:** Premium Apple-style glassmorphism with dynamic animated multi-blob aurora gradients, translucent cards, and frosted panel layouts.
+* **Custom Theme Presets:** Choose from Vortex Glass, Midnight Blue, Dracula, Nord, Catppuccin, AMOLED, and Light, with support for custom accent overrides.
 * **Command Palette (Ctrl+Shift+P):** Instantly trigger core actions (add file/magnet, global play/pause, cleanup, settings navigation) via keyboard.
 * **Advanced Visual Analytics:** High-fidelity custom statistics panels including a dynamic piece-distribution donut chart.
 * **Comprehensive Metrics:** Real-time download speeds, peer health counts, ETA calculation, and progress bars.
@@ -124,7 +124,7 @@ Vortex/
 │   ├── main_window.py    # Primary window and layout controller
 │   ├── detail_panel.py   # Side panel displaying torrent metadata
 │   ├── stats_bar.py      # Real-time statistics indicator
-│   ├── theme.py          # Dark theme styles, liquid glass, and color presets
+│   ├── theme.py          # Dark theme styles, glass theme, and color presets
 │   ├── settings_view.py  # Comprehensive settings & styling preferences manager
 │   ├── about_dialog.py   # System info, memory diagnostics, and credits dialog
 │   ├── command_palette.py# Command launcher and keyboard shortcuts manager

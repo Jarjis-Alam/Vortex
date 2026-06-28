@@ -1,5 +1,5 @@
 presets = {
-    "Liquid Glass": {
+    "Vortex Glass": {
         "bg_main": "#060713", "bg_panel": "rgba(10, 14, 28, 0.45)", "bg_card": "rgba(20, 26, 46, 0.40)",
         "border": "rgba(255, 255, 255, 0.08)", "border_alt": "rgba(255, 255, 255, 0.05)", "text": "#ffffff",
         "text_muted": "#8b9bb4", "accent": "#2563eb", "accent_hover": "#3b82f6",
