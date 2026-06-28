@@ -5,6 +5,8 @@ on:
     branches:
       - main
       - master
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 jobs:
@@ -81,3 +83,47 @@ jobs:
           name: Vortex-Linux-CLI
           path: dist/Vortex-CLI
           if-no-files-found: error
+
+  publish-release:
+    name: Publish GitHub Release
+    needs: [build-windows, build-linux]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download Windows GUI Executable
+        uses: actions/download-artifact@v4
+        with:
+          name: Vortex-Windows-GUI
+          path: release-assets
+
+      - name: Download Windows CLI Executable
+        uses: actions/download-artifact@v4
+        with:
+          name: Vortex-Windows-CLI
+          path: release-assets
+
+      - name: Download Linux GUI Executable
+        uses: actions/download-artifact@v4
+        with:
+          name: Vortex-Linux-GUI
+          path: release-assets
+
+      - name: Download Linux CLI Executable
+        uses: actions/download-artifact@v4
+        with:
+          name: Vortex-Linux-CLI
+          path: release-assets
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-assets/Vortex.exe
+            release-assets/Vortex-CLI.exe
+            release-assets/Vortex
+            release-assets/Vortex-CLI
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
