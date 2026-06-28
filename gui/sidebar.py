@@ -2,36 +2,103 @@ import os
 import shutil
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QFrame, QProgressBar
+    QFrame
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QSize, QPropertyAnimation, QRect, QTimer
-from PyQt6.QtGui import QIcon, QPixmap, QFont
+from PyQt6.QtCore import Qt, pyqtSignal, QSize, QPropertyAnimation, QRect, QTimer, QByteArray
+from PyQt6.QtGui import QIcon, QPixmap, QFont, QPainter, QColor
+from PyQt6.QtSvg import QSvgRenderer
+from gui.theme import presets
 
+SVG_ICONS = {
+    "Torrents": """<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+    </svg>""",
+    "Downloading": """<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19"/>
+      <polyline points="19 12 12 19 5 12"/>
+    </svg>""",
+    "Completed": """<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>""",
+    "Active": """<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="5 3 19 12 5 21 5 3"/>
+    </svg>""",
+    "Inactive": """<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+    </svg>""",
+    "Labels": """<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+      <line x1="7" y1="7" x2="7.01" y2="7"/>
+    </svg>""",
+    "Feeds": """<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 11a9 9 0 0 1 9 9"/>
+      <path d="M4 4a16 16 0 0 1 16 16"/>
+      <circle cx="5" cy="19" r="1"/>
+    </svg>""",
+    "Devices": """<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+      <line x1="8" y1="21" x2="16" y2="21"/>
+      <line x1="12" y1="17" x2="12" y2="21"/>
+    </svg>""",
+    "Settings": """<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>""",
+    "Statistics": """<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="18" y1="20" x2="18" y2="10"/>
+      <line x1="12" y1="20" x2="12" y2="4"/>
+      <line x1="6" y1="20" x2="6" y2="14"/>
+    </svg>""",
+    "About": """<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="12" y1="16" x2="12" y2="12"/>
+      <line x1="12" y1="8" x2="12.01" y2="8"/>
+    </svg>"""
+}
+
+def make_svg_icon(svg_xml, color_muted, color_accent, color_text, size=QSize(18, 18)):
+    icon = QIcon()
+    for color, mode, state in [
+        (color_muted, QIcon.Mode.Normal, QIcon.State.Off),
+        (color_accent, QIcon.Mode.Normal, QIcon.State.On),
+        (color_text, QIcon.Mode.Active, QIcon.State.Off),
+        (color_accent, QIcon.Mode.Active, QIcon.State.On)
+    ]:
+        xml_colored = svg_xml.replace("currentColor", color)
+        renderer = QSvgRenderer(QByteArray(xml_colored.encode('utf-8')))
+        pixmap = QPixmap(size)
+        pixmap.fill(Qt.GlobalColor.transparent)
+        
+        painter = QPainter(pixmap)
+        renderer.render(painter)
+        painter.end()
+        
+        icon.addPixmap(pixmap, mode, state)
+    return icon
 
 class SidebarItem(QPushButton):
-    def __init__(self, text, badge_count=0, icon_char="", parent=None):
+    def __init__(self, text, badge_count=0, parent=None):
         super().__init__(parent)
         self.setText(text)
         self.badge_count = badge_count
-        self.icon_char = icon_char
         self.setCheckable(True)
         self.setFixedHeight(44)
+        self.setIconSize(QSize(18, 18))
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self._update_text()
 
     def _update_text(self):
-        base = self.text().strip().split('  ')[-1] if '  ' in self.text() else self.text().strip()
+        base = self.text().strip()
         if " (" in base:
             base = base.split(" (")[0]
         if self.badge_count > 0:
-            self.setText(f"  {self.icon_char}  {base} ({self.badge_count})")
+            self.setText(f"{base} ({self.badge_count})")
         else:
-            self.setText(f"  {self.icon_char}  {base}")
+            self.setText(base)
 
     def set_badge(self, count):
         self.badge_count = count
         self._update_text()
-
 
 class Sidebar(QWidget):
     filter_changed = pyqtSignal(str)
@@ -48,7 +115,7 @@ class Sidebar(QWidget):
         logo_layout = QHBoxLayout()
         logo_layout.setContentsMargins(6, 0, 0, 20)
         res_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "resources")
-        logo_path = os.path.join(res_dir, "logo.png")
+        logo_path = os.path.join(res_dir, "vortex_logo_v2.png")
         logo_icon = QLabel()
         if os.path.exists(logo_path):
             pm = QPixmap(logo_path).scaled(36, 36, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
@@ -61,23 +128,17 @@ class Sidebar(QWidget):
         logo_layout.addStretch()
         layout.addLayout(logo_layout)
 
-        # Indicator behind selected items
-        self.indicator = QWidget(self)
-        self.indicator.setStyleSheet("background-color: rgba(37, 99, 235, 0.12); border-radius: 10px; border-left: 3px solid #2563eb;")
-        self.indicator.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
-        self.indicator.hide()
-
         # Nav items
         self.items = {}
         nav_data = [
-            ("Torrents", "📂", 0),
-            ("Downloading", "↓", 0),
-            ("Completed", "✓", 0),
-            ("Active", "●", 0),
-            ("Inactive", "■", 0),
+            ("Torrents", 0),
+            ("Downloading", 0),
+            ("Completed", 0),
+            ("Active", 0),
+            ("Inactive", 0),
         ]
-        for name, icon, badge in nav_data:
-            item = SidebarItem(name, badge, icon, self)
+        for name, badge in nav_data:
+            item = SidebarItem(name, badge, self)
             item.setObjectName(f"nav_{name.lower()}")
             item.clicked.connect(lambda checked, n=name: self._on_clicked(n))
             layout.addWidget(item)
@@ -90,12 +151,12 @@ class Sidebar(QWidget):
         layout.addWidget(sep)
 
         nav_data2 = [
-            ("Labels", "🏷", 0),
-            ("Feeds", "📡", 0),
-            ("Devices", "💻", 0),
+            ("Labels", 0),
+            ("Feeds", 0),
+            ("Devices", 0),
         ]
-        for name, icon, badge in nav_data2:
-            item = SidebarItem(name, badge, icon, self)
+        for name, badge in nav_data2:
+            item = SidebarItem(name, badge, self)
             item.setObjectName(f"nav_{name.lower()}")
             item.clicked.connect(lambda checked, n=name: self._on_clicked(n))
             layout.addWidget(item)
@@ -107,12 +168,12 @@ class Sidebar(QWidget):
         layout.addWidget(sep2)
 
         nav_data3 = [
-            ("Settings", "⚙", 0),
-            ("Statistics", "📊", 0),
-            ("About", "ℹ", 0),
+            ("Settings", 0),
+            ("Statistics", 0),
+            ("About", 0),
         ]
-        for name, icon, badge in nav_data3:
-            item = SidebarItem(name, badge, icon, self)
+        for name, badge in nav_data3:
+            item = SidebarItem(name, badge, self)
             item.setObjectName(f"nav_{name.lower()}")
             item.clicked.connect(lambda checked, n=name: self._on_clicked(n))
             layout.addWidget(item)
@@ -168,13 +229,28 @@ class Sidebar(QWidget):
 
         # Select Torrents by default
         self.items["Torrents"].setChecked(True)
-        QTimer.singleShot(100, self._init_indicator)
         
         # Periodic check for storage
         self.storage_timer = QTimer(self)
         self.storage_timer.timeout.connect(self._update_storage_usage)
         self.storage_timer.start(5000)
         self._update_storage_usage()
+
+    def refresh_theme_icons(self):
+        main_win = self.window()
+        theme_name = getattr(main_win, "current_theme", "Midnight Blue")
+        custom_accent = getattr(main_win, "custom_accent_color", None)
+        
+        colors = presets.get(theme_name, presets["Midnight Blue"])
+        
+        accent = custom_accent if custom_accent else colors["accent"]
+        text_muted = colors["text_muted"]
+        text_normal = colors["text"]
+        
+        for name, item in self.items.items():
+            if name in SVG_ICONS:
+                icon = make_svg_icon(SVG_ICONS[name], text_muted, accent, text_normal)
+                item.setIcon(icon)
 
     def _update_storage_usage(self):
         try:
@@ -191,25 +267,9 @@ class Sidebar(QWidget):
         except Exception:
             pass
 
-    def _init_indicator(self):
-        selected_item = self.items.get("Torrents")
-        if selected_item:
-            self.indicator.setGeometry(selected_item.geometry())
-            self.indicator.show()
-
     def _on_clicked(self, name):
         for key, item in self.items.items():
             item.setChecked(key == name)
-            
-        selected_item = self.items.get(name)
-        if selected_item:
-            self.anim = QPropertyAnimation(self.indicator, b"geometry")
-            self.anim.setDuration(180)
-            self.anim.setStartValue(self.indicator.geometry())
-            self.anim.setEndValue(selected_item.geometry())
-            self.anim.start()
-            self.indicator.show()
-            
         self.filter_changed.emit(name)
 
     def update_badges(self, total=0, downloading=0, completed=0, active=0, inactive=0):

@@ -46,13 +46,72 @@ def run_gui():
         import os
         from PyQt6.QtWidgets import QApplication
         from PyQt6.QtGui import QIcon
+        from PyQt6.QtNetwork import QLocalServer, QLocalSocket
         from gui.main_window import MainWindow
         from gui.splash_screen import SplashScreen
         
+        # Determine if a torrent file or magnet link is passed as an argument
+        torrent_file = None
+        for arg in sys.argv[1:]:
+            if not arg.startswith("-"):
+                if os.path.exists(arg):
+                    torrent_file = os.path.abspath(arg)
+                else:
+                    torrent_file = arg
+                break
+
+        # Check for another running instance
+        socket_name = "vortex_single_instance"
+        socket = QLocalSocket()
+        socket.connectToServer(socket_name)
+        if socket.waitForConnected(500):
+            if torrent_file:
+                socket.write(torrent_file.encode('utf-8'))
+                socket.waitForBytesWritten(1000)
+            socket.disconnectFromServer()
+            sys.exit(0)
+
+        # Start local server to listen for subsequent instances
+        server = QLocalServer()
+        QLocalServer.removeServer(socket_name)
+        if not server.listen(socket_name):
+            print(f"Failed to start local single-instance server: {server.errorString()}")
+
+        received_queue = []
+        main_window_instance = None
+
+        def handle_new_connection():
+            client_socket = server.nextPendingConnection()
+            if client_socket:
+                if client_socket.waitForReadyRead(1000):
+                    data = client_socket.readAll().data().decode('utf-8')
+                    if data:
+                        if os.path.exists(data):
+                            data = os.path.abspath(data)
+                        nonlocal main_window_instance
+                        if main_window_instance is not None:
+                            main_window_instance.handle_torrent_file(data)
+                        else:
+                            received_queue.append(data)
+                client_socket.disconnectFromServer()
+
+        server.newConnection.connect(handle_new_connection)
+
         app = QApplication(sys.argv)
         app.setDesktopFileName("vortex")
         
-        logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources", "logo.png")
+        # Set AppUserModelID on Windows to ensure correct taskbar icon grouping
+        if sys.platform == "win32":
+            import ctypes
+            try:
+                ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("JarjisAlam.Vortex.BitTorrentClient")
+            except Exception:
+                pass
+        
+        # Attach the server to the QApplication to prevent garbage collection
+        app._single_instance_server = server
+        
+        logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources", "vortex_logo_v2.png")
         if os.path.exists(logo_path):
             app.setWindowIcon(QIcon(logo_path))
             
@@ -60,7 +119,18 @@ def run_gui():
         splash = SplashScreen()
         if splash.exec() == SplashScreen.DialogCode.Accepted:
             window = MainWindow()
+            main_window_instance = window
             window.show()
+            
+            # Process arguments passed to this initial instance
+            if torrent_file:
+                window.handle_torrent_file(torrent_file)
+                
+            # Process any torrent files received via socket during startup
+            for pending in received_queue:
+                window.handle_torrent_file(pending)
+            received_queue.clear()
+            
             sys.exit(app.exec())
         else:
             sys.exit(0)

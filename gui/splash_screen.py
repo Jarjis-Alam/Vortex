@@ -1,8 +1,9 @@
 import sys
 import time
+import os
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QProgressBar
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QColor, QPainter, QRadialGradient
+from PyQt6.QtGui import QColor, QPainter, QRadialGradient, QPixmap
 
 class SplashScreen(QDialog):
     def __init__(self):
@@ -15,8 +16,15 @@ class SplashScreen(QDialog):
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.setSpacing(16)
         
-        self.lbl_logo = QLabel("🌀")
-        self.lbl_logo.setStyleSheet("font-size: 80px; background: transparent; border: none;")
+        self.lbl_logo = QLabel()
+        res_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "resources")
+        logo_path = os.path.join(res_dir, "vortex_logo_v2.png")
+        if os.path.exists(logo_path):
+            pm = QPixmap(logo_path).scaled(110, 110, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            self.lbl_logo.setPixmap(pm)
+        else:
+            self.lbl_logo.setText("🌀")
+            self.lbl_logo.setStyleSheet("font-size: 80px; background: transparent; border: none;")
         self.lbl_logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         self.lbl_title = QLabel("VORTEX")
