@@ -369,7 +369,7 @@ def get_theme_qss(theme_name):
         font-size: 14px;
     }}
     QMenu::item:selected {{
-        background-color: rgba(37, 99, 235, 0.15);
+        background-color: {accent_rgba};
         color: {colors["text"]};
     }}
 
@@ -380,5 +380,113 @@ def get_theme_qss(theme_name):
     }}
     QWidget#cardContainer {{
         background-color: transparent;
+    }}
+
+    /* ── Detail Panel Frosted Cards & Styles ── */
+    QFrame#detailCard {{
+        background-color: {colors["bg_card"]};
+        border: 1px solid {colors["border"]};
+        border-radius: 16px;
+    }}
+    QWidget#speedGraph, QWidget#pieceMap, QWidget#swarmWidget {{
+        background-color: {colors["bg_panel"]};
+        border-radius: 12px;
+        border: 1px solid {colors["border"]};
+    }}
+    QPushButton#btnOpenFolder {{
+        background-color: transparent;
+        border: 1.5px solid {colors["accent"]};
+        border-radius: 999px;
+        padding: 8px 16px;
+        color: {colors["accent"]};
+        font-weight: bold;
+        font-size: 12px;
+    }}
+    QPushButton#btnOpenFolder:hover {{
+        background-color: {accent_rgba};
+        color: {colors["accent_hover"]};
+    }}
+    QLabel#lblDetailName {{
+        font-size: 14px;
+        font-weight: bold;
+        color: {colors["text"]};
+        background: transparent;
+        border: none;
+    }}
+    QLabel#lblProgressText {{
+        color: {colors["accent"]};
+        font-size: 12px;
+        font-weight: bold;
+        background: transparent;
+        border: none;
+    }}
+    QLabel#valPeers {{
+        color: {colors["accent"]};
+        font-size: 32px;
+        font-weight: bold;
+        background: transparent;
+        border: none;
+    }}
+    QLabel#valSeeds {{
+        color: {colors["success"]};
+        font-size: 32px;
+        font-weight: bold;
+        background: transparent;
+        border: none;
+    }}
+    QLabel#lblPeerDots {{
+        color: {colors["accent"]};
+        font-size: 18px;
+        font-weight: bold;
+        background: transparent;
+        border: none;
+    }}
+    QLabel#lblSeedDots {{
+        color: {colors["success"]};
+        font-size: 18px;
+        font-weight: bold;
+        background: transparent;
+        border: none;
+    }}
+    QLabel#lblSubText {{
+        color: {colors["text_muted"]};
+        font-size: 12px;
+        font-weight: 500;
+        background: transparent;
+        border: none;
+    }}
+    QLabel#lblHealthStatus {{
+        color: {colors["success"]};
+        font-size: 14px;
+        font-weight: bold;
+        background: transparent;
+        border: none;
+    }}
+    QLabel#lblHealthStars {{
+        color: {colors["success"]};
+        font-size: 16px;
+        background: transparent;
+        border: none;
+    }}
+    QLabel#timelineAddedTitle {{
+        color: {colors["success"]};
+        font-size: 12px;
+        font-weight: bold;
+        background: transparent;
+        border: none;
+    }}
+    QLabel#timelineConnTitle, QLabel#timelineDlTitle, QLabel#timelineSeedTitle {{
+        color: {colors["text_muted"]};
+        font-size: 12px;
+        font-weight: bold;
+        background: transparent;
+        border: none;
+    }}
+    QLabel#timelineTime {{
+        color: {colors["text_muted"]};
+        font-size: 11px;
+        background: transparent;
+        border: none;
+        margin-left: 18px;
     }}
     """

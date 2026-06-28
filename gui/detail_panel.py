@@ -13,13 +13,7 @@ from gui.donut_chart import DonutChart
 class DetailCard(QFrame):
     def __init__(self, title, parent=None):
         super().__init__(parent)
-        self.setStyleSheet("""
-            QFrame {
-                background-color: #141828;
-                border: 1px solid #1e2438;
-                border-radius: 12px;
-            }
-        """)
+        self.setObjectName("detailCard")
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(14, 12, 14, 12)
         self.layout.setSpacing(6)
@@ -32,10 +26,10 @@ class DetailCard(QFrame):
 class SpeedGraph(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setObjectName("speedGraph")
         self.dl_history = [0.0] * 60
         self.ul_history = [0.0] * 60
         self.setFixedHeight(220)
-        self.setStyleSheet("background-color: #0b0e18; border-radius: 12px;")
 
     def add_speeds(self, dl, ul):
         self.dl_history.pop(0)
@@ -136,12 +130,12 @@ class SpeedGraph(QWidget):
 class PieceMapWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setObjectName("pieceMap")
         self.completed_pieces = set()
         self.total_pieces = 0
         self.downloading_pieces = set()
         self.hovered_idx = -1
         self.setMouseTracking(True)
-        self.setStyleSheet("background-color: #0b0e18;")
         
     def update_pieces(self, completed, total, downloading=None):
         self.completed_pieces = set(completed)
@@ -232,8 +226,8 @@ class PieceMapWidget(QWidget):
 class SwarmWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setObjectName("swarmWidget")
         self.peers = []
-        self.setStyleSheet("background-color: #0b0e18;")
         self.setMouseTracking(True)
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._rotate)
@@ -457,7 +451,7 @@ class DetailPanel(QWidget):
         self.card_left = DetailCard("No torrent selected", self)
         self.lbl_name = self.card_left.title_lbl
         self.lbl_name.setWordWrap(True)
-        self.lbl_name.setStyleSheet("color: #ffffff; font-size: 13px; font-weight: bold; background: transparent; border: none;")
+        self.lbl_name.setObjectName("lblDetailName")
         
         self.donut = DonutChart()
         self.donut.setFixedSize(90, 90)
@@ -467,22 +461,8 @@ class DetailPanel(QWidget):
         self.card_left.layout.addLayout(donut_hlayout)
         
         self.btn_open_folder = QPushButton("📁 Open Folder")
+        self.btn_open_folder.setObjectName("btnOpenFolder")
         self.btn_open_folder.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn_open_folder.setStyleSheet("""
-            QPushButton {
-                background-color: transparent;
-                border: 1.5px solid #2563eb;
-                border-radius: 999px;
-                padding: 8px 16px;
-                color: #2563eb;
-                font-weight: bold;
-                font-size: 12px;
-            }
-            QPushButton:hover {
-                background-color: rgba(37, 99, 235, 0.08);
-                color: #3b82f6;
-            }
-        """)
         self.btn_open_folder.clicked.connect(self._on_open_folder_clicked)
         self.card_left.layout.addWidget(self.btn_open_folder)
         self.card_left.layout.addStretch()
@@ -496,20 +476,9 @@ class DetailPanel(QWidget):
         self.progress_bar = QProgressBar()
         self.progress_bar.setFixedHeight(8)
         self.progress_bar.setTextVisible(False)
-        self.progress_bar.setStyleSheet("""
-            QProgressBar {
-                background-color: #1a1f30;
-                border-radius: 999px;
-                border: none;
-            }
-            QProgressBar::chunk {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #2F7CF6, stop:1 #47B2FF);
-                border-radius: 999px;
-            }
-        """)
         
         self.lbl_progress_text = QLabel("0.00 MB / 0.00 MB | 0%")
-        self.lbl_progress_text.setStyleSheet("color: #2563eb; font-size: 12px; font-weight: bold; background: transparent; border: none;")
+        self.lbl_progress_text.setObjectName("lblProgressText")
         
         prog_layout.addWidget(self.progress_bar, 1)
         prog_layout.addWidget(self.lbl_progress_text)
@@ -539,13 +508,13 @@ class DetailPanel(QWidget):
         # 2. Peers Card (with connected dots)
         self.card_peers = DetailCard("Peers", self)
         self.v_peers = QLabel("0")
-        self.v_peers.setStyleSheet("color: #2563eb; font-size: 32px; font-weight: bold; background: transparent; border: none;")
+        self.v_peers.setObjectName("valPeers")
         self.lbl_peer_sub = QLabel("Connected")
-        self.lbl_peer_sub.setStyleSheet("color: #8892a8; font-size: 12px; font-weight: 500; background: transparent; border: none;")
+        self.lbl_peer_sub.setObjectName("lblSubText")
         self.lbl_peer_dots = QLabel("•••••")
-        self.lbl_peer_dots.setStyleSheet("color: #2563eb; font-size: 18px; font-weight: bold; background: transparent; border: none;")
+        self.lbl_peer_dots.setObjectName("lblPeerDots")
         self.lbl_peer_swarm = QLabel("In swarm: 0")
-        self.lbl_peer_swarm.setStyleSheet("color: #8892a8; font-size: 12px; background: transparent; border: none;")
+        self.lbl_peer_swarm.setObjectName("lblSubText")
         
         self.card_peers.layout.addWidget(self.v_peers)
         self.card_peers.layout.addWidget(self.lbl_peer_sub)
@@ -556,13 +525,13 @@ class DetailPanel(QWidget):
         # 3. Seeds Card
         self.card_seeds = DetailCard("Seeds", self)
         self.v_seeds = QLabel("0")
-        self.v_seeds.setStyleSheet("color: #22c55e; font-size: 32px; font-weight: bold; background: transparent; border: none;")
+        self.v_seeds.setObjectName("valSeeds")
         self.lbl_seed_sub = QLabel("Active")
-        self.lbl_seed_sub.setStyleSheet("color: #8892a8; font-size: 12px; font-weight: 500; background: transparent; border: none;")
+        self.lbl_seed_sub.setObjectName("lblSubText")
         self.lbl_seed_dots = QLabel("•••••")
-        self.lbl_seed_dots.setStyleSheet("color: #22c55e; font-size: 18px; font-weight: bold; background: transparent; border: none;")
+        self.lbl_seed_dots.setObjectName("lblSeedDots")
         self.lbl_seed_swarm = QLabel("In swarm: 0")
-        self.lbl_seed_swarm.setStyleSheet("color: #8892a8; font-size: 12px; background: transparent; border: none;")
+        self.lbl_seed_swarm.setObjectName("lblSubText")
         
         self.card_seeds.layout.addWidget(self.v_seeds)
         self.card_seeds.layout.addWidget(self.lbl_seed_sub)
@@ -573,10 +542,10 @@ class DetailPanel(QWidget):
         # 5. Health Card
         self.card_health = DetailCard("Torrent Health", self)
         self.lbl_health_status = QLabel("🟢 Excellent")
-        self.lbl_health_status.setStyleSheet("color: #22c55e; font-size: 14px; font-weight: bold; background: transparent; border: none;")
+        self.lbl_health_status.setObjectName("lblHealthStatus")
         
         self.lbl_health_stars = QLabel("★★★★★")
-        self.lbl_health_stars.setStyleSheet("color: #22c55e; font-size: 16px; background: transparent; border: none;")
+        self.lbl_health_stars.setObjectName("lblHealthStars")
         
         grid_health = QGridLayout()
         grid_health.setContentsMargins(0, 4, 0, 0)
@@ -608,24 +577,24 @@ class DetailPanel(QWidget):
         self.vbox_timeline.setContentsMargins(0, 4, 0, 0)
         
         self.item_added_title = QLabel("🟢 Added")
-        self.item_added_title.setStyleSheet("color: #22c55e; font-size: 12px; font-weight: bold; background: transparent; border: none;")
+        self.item_added_title.setObjectName("timelineAddedTitle")
         self.item_added_time = QLabel("—")
-        self.item_added_time.setStyleSheet("color: #6b7590; font-size: 11px; background: transparent; border: none; margin-left: 18px;")
+        self.item_added_time.setObjectName("timelineTime")
         
         self.item_conn_title = QLabel("○ Connecting")
-        self.item_conn_title.setStyleSheet("color: #6b7590; font-size: 12px; font-weight: bold; background: transparent; border: none;")
+        self.item_conn_title.setObjectName("timelineConnTitle")
         self.item_conn_time = QLabel("—")
-        self.item_conn_time.setStyleSheet("color: #6b7590; font-size: 11px; background: transparent; border: none; margin-left: 18px;")
+        self.item_conn_time.setObjectName("timelineTime")
         
         self.item_dl_title = QLabel("○ Downloading")
-        self.item_dl_title.setStyleSheet("color: #6b7590; font-size: 12px; font-weight: bold; background: transparent; border: none;")
+        self.item_dl_title.setObjectName("timelineDlTitle")
         self.item_dl_time = QLabel("—")
-        self.item_dl_time.setStyleSheet("color: #6b7590; font-size: 11px; background: transparent; border: none; margin-left: 18px;")
+        self.item_dl_time.setObjectName("timelineTime")
         
         self.item_seed_title = QLabel("○ Seeding")
-        self.item_seed_title.setStyleSheet("color: #6b7590; font-size: 12px; font-weight: bold; background: transparent; border: none;")
+        self.item_seed_title.setObjectName("timelineSeedTitle")
         self.item_seed_time = QLabel("—")
-        self.item_seed_time.setStyleSheet("color: #6b7590; font-size: 11px; background: transparent; border: none; margin-left: 18px;")
+        self.item_seed_time.setObjectName("timelineTime")
         
         self.vbox_timeline.addWidget(self.item_added_title)
         self.vbox_timeline.addWidget(self.item_added_time)
