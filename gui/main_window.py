@@ -657,6 +657,7 @@ class AddTorrentDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Add Torrent")
         self.resize(800, 680)
+        self.setWindowFlags(self.windowFlags() | Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
         self.setAcceptDrops(True)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self._is_valid_magnet = False
@@ -1531,6 +1532,20 @@ class AddTorrentDialog(QDialog):
         painter.setPen(pen)
         painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawRoundedRect(rect, 16.0, 16.0)
+        
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._drag_pos = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+            event.accept()
+        else:
+            super().mousePressEvent(event)
+            
+    def mouseMoveEvent(self, event):
+        if event.buttons() == Qt.MouseButton.LeftButton and hasattr(self, "_drag_pos"):
+            self.move(event.globalPosition().toPoint() - self._drag_pos)
+            event.accept()
+        else:
+            super().mouseMoveEvent(event)
 
 
 class EmptyStateWidget(QWidget):
