@@ -2594,6 +2594,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Vortex")
         self.resize(1400, 850)
         self.setAcceptDrops(True)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         
         logo_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "resources", "vortex_logo_v2.png")
         if os.path.exists(logo_path):
@@ -3107,8 +3108,8 @@ class MainWindow(QMainWindow):
         
         if theme_name == "Vortex Glass":
             # 1. Vortex Glass: Stunning Apple-like animated mesh gradient backdrop
-            # Dark base
-            painter.fillRect(self.rect(), QColor("#04050f"))
+            # Dark base (translucent)
+            painter.fillRect(self.rect(), QColor(6, 7, 19, 175))
             
             # Fluid Blob 1: Deep Royal Blue shifting top-left
             cx1 = w * 0.25 + (w * 0.15) * math.sin(t * 0.08)
@@ -3144,14 +3145,15 @@ class MainWindow(QMainWindow):
             cy = h / 2 + (h * 0.15) * math.cos(t_scaled)
             grad = QRadialGradient(cx, cy, w * 0.8)
             
-            c2 = QColor("#0b0e18")
-            c3 = QColor("#05070c")
+            c2 = QColor(11, 14, 24, 180)
+            c3 = QColor(5, 7, 12, 180)
             
             shift = (math.sin(t_scaled) + 1.0) / 2.0
             purple_tint = QColor(
                 int(15 + 15 * shift),
                 int(18 + 10 * (1 - shift)),
-                int(32 + 25 * shift)
+                int(32 + 25 * shift),
+                180
             )
             grad.setColorAt(0, purple_tint)
             grad.setColorAt(0.5, c2)
@@ -3159,8 +3161,8 @@ class MainWindow(QMainWindow):
             painter.fillRect(self.rect(), grad)
             
         elif theme_name == "Dracula":
-            # Dracula: Dracula colors in background blobs
-            painter.fillRect(self.rect(), QColor("#1e1f29"))
+            # Dracula: Dracula colors in background blobs (translucent)
+            painter.fillRect(self.rect(), QColor(30, 31, 41, 180))
             cx = w * 0.6 + (w * 0.12) * math.sin(t * 0.08)
             cy = h * 0.4 + (h * 0.12) * math.cos(t * 0.08)
             grad = QRadialGradient(cx, cy, w * 0.6)
@@ -3174,8 +3176,8 @@ class MainWindow(QMainWindow):
             painter.fillRect(self.rect(), QColor("#000000"))
             
         elif theme_name == "Nord":
-            # Nord: Slate/frost aurora background
-            painter.fillRect(self.rect(), QColor("#2e3440"))
+            # Nord: Slate/frost aurora background (translucent)
+            painter.fillRect(self.rect(), QColor(46, 52, 64, 180))
             cx = w * 0.3 + (w * 0.15) * math.cos(t * 0.05)
             cy = h * 0.6 + (h * 0.15) * math.sin(t * 0.05)
             grad = QRadialGradient(cx, cy, w * 0.55)
@@ -3184,8 +3186,8 @@ class MainWindow(QMainWindow):
             painter.fillRect(self.rect(), grad)
             
         elif theme_name == "Catppuccin":
-            # Catppuccin: Pastel mauve/blue shifts
-            painter.fillRect(self.rect(), QColor("#1e1e2e"))
+            # Catppuccin: Pastel mauve/blue shifts (translucent)
+            painter.fillRect(self.rect(), QColor(30, 30, 46, 180))
             cx = w * 0.7 + (w * 0.15) * math.sin(t * 0.07)
             cy = h * 0.3 + (h * 0.15) * math.cos(t * 0.07)
             grad = QRadialGradient(cx, cy, w * 0.5)
@@ -3194,8 +3196,8 @@ class MainWindow(QMainWindow):
             painter.fillRect(self.rect(), grad)
             
         elif theme_name == "Light":
-            # Light: Sophisticated light grey/blue mesh
-            painter.fillRect(self.rect(), QColor("#f0f2f5"))
+            # Light: Sophisticated light grey/blue mesh (translucent)
+            painter.fillRect(self.rect(), QColor(240, 242, 245, 180))
             cx1 = w * 0.3 + (w * 0.15) * math.sin(t * 0.06)
             cy1 = h * 0.3 + (h * 0.15) * math.cos(t * 0.08)
             grad1 = QRadialGradient(cx1, cy1, w * 0.5)
