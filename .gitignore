@@ -21,4 +21,5 @@ __pycache__/
 dist/
 build/
 venv/
+.wine/
 .wine_clean/
