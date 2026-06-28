@@ -98,7 +98,7 @@ class RemoveTorrentDialog(QDialog):
         self.bg_frame.setObjectName("dialogBg")
         self.bg_frame.setStyleSheet("""
             QFrame#dialogBg {
-                background-color: #141828;
+                background-color: rgba(20, 24, 40, 0.92);
                 border: 1px solid rgba(255, 255, 255, 0.08);
                 border-radius: 12px;
             }

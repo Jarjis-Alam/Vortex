@@ -658,12 +658,13 @@ class AddTorrentDialog(QDialog):
         self.setWindowTitle("Add Torrent")
         self.resize(800, 680)
         self.setAcceptDrops(True)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self._is_valid_magnet = False
         self._has_enough_space = True
         
         self.setStyleSheet("""
             QDialog {
-                background-color: #080b10;
+                background-color: rgba(8, 11, 16, 0.92);
                 border: 1px solid #1e2438;
             }
             QLabel {
@@ -1600,7 +1601,7 @@ class DownloadCompleteDialog(QDialog):
         self.bg_frame.setObjectName("completeBg")
         self.bg_frame.setStyleSheet("""
             QFrame#completeBg {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #141828, stop:1 #0f1220);
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(20, 24, 40, 0.92), stop:1 rgba(15, 18, 32, 0.92));
                 border: 1.5px solid #22c55e;
                 border-radius: 20px;
             }
@@ -3109,7 +3110,7 @@ class MainWindow(QMainWindow):
         if theme_name == "Vortex Glass":
             # 1. Vortex Glass: Stunning Apple-like animated mesh gradient backdrop
             # Dark base (translucent)
-            painter.fillRect(self.rect(), QColor(6, 7, 19, 175))
+            painter.fillRect(self.rect(), QColor(6, 7, 19, 235))
             
             # Fluid Blob 1: Deep Royal Blue shifting top-left
             cx1 = w * 0.25 + (w * 0.15) * math.sin(t * 0.08)
@@ -3145,15 +3146,15 @@ class MainWindow(QMainWindow):
             cy = h / 2 + (h * 0.15) * math.cos(t_scaled)
             grad = QRadialGradient(cx, cy, w * 0.8)
             
-            c2 = QColor(11, 14, 24, 180)
-            c3 = QColor(5, 7, 12, 180)
+            c2 = QColor(11, 14, 24, 235)
+            c3 = QColor(5, 7, 12, 235)
             
             shift = (math.sin(t_scaled) + 1.0) / 2.0
             purple_tint = QColor(
                 int(15 + 15 * shift),
                 int(18 + 10 * (1 - shift)),
                 int(32 + 25 * shift),
-                180
+                235
             )
             grad.setColorAt(0, purple_tint)
             grad.setColorAt(0.5, c2)
@@ -3162,7 +3163,7 @@ class MainWindow(QMainWindow):
             
         elif theme_name == "Dracula":
             # Dracula: Dracula colors in background blobs (translucent)
-            painter.fillRect(self.rect(), QColor(30, 31, 41, 180))
+            painter.fillRect(self.rect(), QColor(30, 31, 41, 235))
             cx = w * 0.6 + (w * 0.12) * math.sin(t * 0.08)
             cy = h * 0.4 + (h * 0.12) * math.cos(t * 0.08)
             grad = QRadialGradient(cx, cy, w * 0.6)
@@ -3177,7 +3178,7 @@ class MainWindow(QMainWindow):
             
         elif theme_name == "Nord":
             # Nord: Slate/frost aurora background (translucent)
-            painter.fillRect(self.rect(), QColor(46, 52, 64, 180))
+            painter.fillRect(self.rect(), QColor(46, 52, 64, 235))
             cx = w * 0.3 + (w * 0.15) * math.cos(t * 0.05)
             cy = h * 0.6 + (h * 0.15) * math.sin(t * 0.05)
             grad = QRadialGradient(cx, cy, w * 0.55)
@@ -3187,7 +3188,7 @@ class MainWindow(QMainWindow):
             
         elif theme_name == "Catppuccin":
             # Catppuccin: Pastel mauve/blue shifts (translucent)
-            painter.fillRect(self.rect(), QColor(30, 30, 46, 180))
+            painter.fillRect(self.rect(), QColor(30, 30, 46, 235))
             cx = w * 0.7 + (w * 0.15) * math.sin(t * 0.07)
             cy = h * 0.3 + (h * 0.15) * math.cos(t * 0.07)
             grad = QRadialGradient(cx, cy, w * 0.5)
@@ -3197,7 +3198,7 @@ class MainWindow(QMainWindow):
             
         elif theme_name == "Light":
             # Light: Sophisticated light grey/blue mesh (translucent)
-            painter.fillRect(self.rect(), QColor(240, 242, 245, 180))
+            painter.fillRect(self.rect(), QColor(240, 242, 245, 235))
             cx1 = w * 0.3 + (w * 0.15) * math.sin(t * 0.06)
             cy1 = h * 0.3 + (h * 0.15) * math.cos(t * 0.08)
             grad1 = QRadialGradient(cx1, cy1, w * 0.5)

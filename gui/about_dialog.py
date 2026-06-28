@@ -182,7 +182,7 @@ class AboutDialog(QDialog):
         self.bg_frame.setObjectName("dialogBg")
         self.bg_frame.setStyleSheet("""
             QFrame#dialogBg {
-                background-color: #07090e;
+                background-color: rgba(7, 9, 14, 0.92);
                 border: 1px solid #161a25;
                 border-radius: 16px;
             }
