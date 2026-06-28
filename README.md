@@ -16,12 +16,15 @@ Rather than wrapping existing libtorrent binaries, Vortex implements the entire 
 
 ## 📸 Screenshots
 
+### Main Dashboard
+![Vortex Main Dashboard](assets/screenshots/VORTEX1.png)
+
+### Settings & Configuration
+![Settings & Styling Configuration](assets/screenshots/VORTEX3.png)
+
+### About Vortex & Session Details
 <p align="center">
-  <img src="assets/screenshots/VORTEX1.png" alt="Vortex Main Dashboard" width="49%">
-  <img src="assets/screenshots/VORTEX2.png" alt="Torrent Information & Donut Chart" width="49%">
-</p>
-<p align="center">
-  <img src="assets/screenshots/VORTEX3.png" alt="Settings & Styling Configuration" width="99%">
+  <img src="assets/screenshots/VORTEX2.png" alt="About Vortex" width="60%">
 </p>
 
 ---
