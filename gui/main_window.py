@@ -17,7 +17,7 @@ from PyQt6.QtCore import QTimer, Qt, QObject, pyqtSignal, QSize, QRect, QPropert
 from PyQt6.QtGui import (
     QAction, QIcon, QPixmap, QDragEnterEvent, QDropEvent,
     QShortcut, QKeySequence, QPainter, QColor, QRadialGradient,
-    QLinearGradient, QPainterPath
+    QLinearGradient, QPainterPath, QBrush
 )
 from PyQt6.QtSvg import QSvgRenderer
 
