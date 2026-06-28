@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QCheckBox,
     QFrame, QWidget, QGraphicsDropShadowEffect, QApplication
 )
-from PyQt6.QtCore import Qt, QPropertyAnimation, QRect, QPointF, QRectF
+from PyQt6.QtCore import Qt, QPropertyAnimation, QRect, QPointF, QRectF, QTimer
 from PyQt6.QtGui import (
     QPainter, QColor, QPen, QBrush, QLinearGradient, QFont, QFontMetrics, QPainterPath
 )
@@ -98,9 +98,8 @@ class RemoveTorrentDialog(QDialog):
         self.bg_frame.setObjectName("dialogBg")
         self.bg_frame.setStyleSheet("""
             QFrame#dialogBg {
-                background-color: rgba(20, 24, 40, 0.92);
-                border: 1px solid rgba(255, 255, 255, 0.08);
-                border-radius: 12px;
+                background: transparent;
+                border: none;
             }
         """)
         
@@ -278,6 +277,59 @@ class RemoveTorrentDialog(QDialog):
         
         # Initial warning update
         self._update_warning(self.chk_delete_data.isChecked())
+        
+        # Animation timer to update background gradients
+        self.bg_timer = QTimer(self)
+        self.bg_timer.timeout.connect(self.update)
+        self.bg_timer.start(100) # 10 FPS
+        
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        import math
+        import time
+        
+        # Draw rounded rect body with margins for the drop shadow
+        path = QPainterPath()
+        rect = QRectF(8, 8, self.width() - 16, self.height() - 16)
+        path.addRoundedRect(rect, 12.0, 12.0)
+        
+        # Clip inside the rounded path to keep radial gradient blobs clean
+        painter.setClipPath(path)
+        
+        # 1. Base dark theme color with subtle translucency (92%)
+        painter.fillPath(path, QBrush(QColor(6, 7, 19, 235)))
+        
+        # 2. Moving radial gradients (matching the main screen blue/purple design)
+        w = rect.width()
+        h = rect.height()
+        t = time.time()
+        
+        # Blue shifting top-left
+        cx1 = 8 + w * 0.25 + (w * 0.15) * math.sin(t * 0.08)
+        cy1 = 8 + h * 0.25 + (h * 0.15) * math.cos(t * 0.06)
+        grad1 = QRadialGradient(cx1, cy1, w * 0.6)
+        grad1.setColorAt(0.0, QColor(37, 99, 235, 40)) # blue
+        grad1.setColorAt(0.5, QColor(37, 99, 235, 10))
+        grad1.setColorAt(1.0, QColor(0, 0, 0, 0))
+        painter.fillPath(path, QBrush(grad1))
+        
+        # Purple shifting bottom-right
+        cx2 = 8 + w * 0.75 + (w * 0.15) * math.cos(t * 0.07)
+        cy2 = 8 + h * 0.75 + (h * 0.15) * math.sin(t * 0.09)
+        grad2 = QRadialGradient(cx2, cy2, w * 0.7)
+        grad2.setColorAt(0.0, QColor(147, 51, 234, 30)) # purple
+        grad2.setColorAt(0.5, QColor(147, 51, 234, 8))
+        grad2.setColorAt(1.0, QColor(0, 0, 0, 0))
+        painter.fillPath(path, QBrush(grad2))
+        
+        # 3. Outer border
+        painter.setClipping(False)
+        pen = QPen(QColor(255, 255, 255, 20), 1) # rgba(255, 255, 255, 0.08)
+        painter.setPen(pen)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawRoundedRect(rect, 12.0, 12.0)
         
     def _update_warning(self, checked):
         self.icon_widget.set_use_circle(True)

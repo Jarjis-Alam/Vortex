@@ -17,7 +17,7 @@ from PyQt6.QtCore import QTimer, Qt, QObject, pyqtSignal, QSize, QRect, QPropert
 from PyQt6.QtGui import (
     QAction, QIcon, QPixmap, QDragEnterEvent, QDropEvent,
     QShortcut, QKeySequence, QPainter, QColor, QRadialGradient,
-    QLinearGradient
+    QLinearGradient, QPainterPath
 )
 from PyQt6.QtSvg import QSvgRenderer
 
@@ -664,8 +664,8 @@ class AddTorrentDialog(QDialog):
         
         self.setStyleSheet("""
             QDialog {
-                background-color: rgba(8, 11, 16, 0.92);
-                border: 1px solid #1e2438;
+                background: transparent;
+                border: none;
             }
             QLabel {
                 color: #c8d0e0;
@@ -717,8 +717,13 @@ class AddTorrentDialog(QDialog):
         if os.path.exists(logo_path):
             self.setWindowIcon(QIcon(logo_path))
             
+        # Animation timer to update background gradients
+        self.bg_timer = QTimer(self)
+        self.bg_timer.timeout.connect(self.update)
+        self.bg_timer.start(100) # 10 FPS
+        
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setContentsMargins(12, 12, 12, 12)
         
         self.main_stack = QStackedWidget(self)
         main_layout.addWidget(self.main_stack)
@@ -1488,6 +1493,44 @@ class AddTorrentDialog(QDialog):
             self.txt_bw_limit.text().strip(),
             self.txt_max_conn.text().strip()
         )
+        
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        # Margins for shadow
+        path = QPainterPath()
+        rect = QRectF(12, 12, self.width() - 24, self.height() - 24)
+        path.addRoundedRect(rect, 16.0, 16.0)
+        
+        painter.setClipPath(path)
+        painter.fillPath(path, QBrush(QColor(6, 7, 19, 235)))
+        
+        w = rect.width()
+        h = rect.height()
+        t = time.time()
+        
+        cx1 = 12 + w * 0.25 + (w * 0.15) * math.sin(t * 0.08)
+        cy1 = 12 + h * 0.25 + (h * 0.15) * math.cos(t * 0.06)
+        grad1 = QRadialGradient(cx1, cy1, w * 0.6)
+        grad1.setColorAt(0.0, QColor(37, 99, 235, 40))
+        grad1.setColorAt(0.5, QColor(37, 99, 235, 10))
+        grad1.setColorAt(1.0, QColor(0, 0, 0, 0))
+        painter.fillPath(path, QBrush(grad1))
+        
+        cx2 = 12 + w * 0.75 + (w * 0.15) * math.cos(t * 0.07)
+        cy2 = 12 + h * 0.75 + (h * 0.15) * math.sin(t * 0.09)
+        grad2 = QRadialGradient(cx2, cy2, w * 0.7)
+        grad2.setColorAt(0.0, QColor(147, 51, 234, 30))
+        grad2.setColorAt(0.5, QColor(147, 51, 234, 8))
+        grad2.setColorAt(1.0, QColor(0, 0, 0, 0))
+        painter.fillPath(path, QBrush(grad2))
+        
+        painter.setClipping(False)
+        pen = QPen(QColor(255, 255, 255, 20), 1)
+        painter.setPen(pen)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawRoundedRect(rect, 16.0, 16.0)
 
 
 class EmptyStateWidget(QWidget):
@@ -1595,15 +1638,14 @@ class DownloadCompleteDialog(QDialog):
         self.resize(460, 260)
         
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(2, 2, 2, 2)
         
         self.bg_frame = QFrame()
         self.bg_frame.setObjectName("completeBg")
         self.bg_frame.setStyleSheet("""
             QFrame#completeBg {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(20, 24, 40, 0.92), stop:1 rgba(15, 18, 32, 0.92));
-                border: 1.5px solid #22c55e;
-                border-radius: 20px;
+                background: transparent;
+                border: none;
             }
         """)
         
@@ -1703,6 +1745,11 @@ class DownloadCompleteDialog(QDialog):
         self.btn_folder.clicked.connect(self._on_folder)
         self.btn_seed.clicked.connect(self._on_seed)
         self.btn_close.clicked.connect(self._on_close)
+        
+        # Animation timer to update background gradients
+        self.bg_timer = QTimer(self)
+        self.bg_timer.timeout.connect(self.update)
+        self.bg_timer.start(100) # 10 FPS
 
     def _on_folder(self):
         self.action = "folder"
@@ -1715,6 +1762,54 @@ class DownloadCompleteDialog(QDialog):
     def _on_close(self):
         self.action = "close"
         self.accept()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        import math
+        import time
+        
+        # Draw rounded rect body with margins for the border
+        path = QPainterPath()
+        rect = QRectF(2, 2, self.width() - 4, self.height() - 4)
+        path.addRoundedRect(rect, 20.0, 20.0)
+        
+        # Clip inside the rounded path to keep radial gradient blobs clean
+        painter.setClipPath(path)
+        
+        # 1. Base dark theme color with subtle translucency (92%)
+        painter.fillPath(path, QBrush(QColor(6, 7, 19, 235)))
+        
+        # 2. Moving radial gradients (matching the main screen blue/purple design)
+        w = rect.width()
+        h = rect.height()
+        t = time.time()
+        
+        # Blue shifting top-left
+        cx1 = 2 + w * 0.25 + (w * 0.15) * math.sin(t * 0.08)
+        cy1 = 2 + h * 0.25 + (h * 0.15) * math.cos(t * 0.06)
+        grad1 = QRadialGradient(cx1, cy1, w * 0.6)
+        grad1.setColorAt(0.0, QColor(37, 99, 235, 40)) # blue
+        grad1.setColorAt(0.5, QColor(37, 99, 235, 10))
+        grad1.setColorAt(1.0, QColor(0, 0, 0, 0))
+        painter.fillPath(path, QBrush(grad1))
+        
+        # Purple shifting bottom-right
+        cx2 = 2 + w * 0.75 + (w * 0.15) * math.cos(t * 0.07)
+        cy2 = 2 + h * 0.75 + (h * 0.15) * math.sin(t * 0.09)
+        grad2 = QRadialGradient(cx2, cy2, w * 0.7)
+        grad2.setColorAt(0.0, QColor(147, 51, 234, 30)) # purple
+        grad2.setColorAt(0.5, QColor(147, 51, 234, 8))
+        grad2.setColorAt(1.0, QColor(0, 0, 0, 0))
+        painter.fillPath(path, QBrush(grad2))
+        
+        # 3. Outer border (green border signifying completion)
+        painter.setClipping(False)
+        pen = QPen(QColor("#22c55e"), 1.5)
+        painter.setPen(pen)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawRoundedRect(rect, 20.0, 20.0)
 
 
 class ProgressBarWidget(QWidget):
