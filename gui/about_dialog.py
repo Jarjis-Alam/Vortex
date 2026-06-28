@@ -316,7 +316,7 @@ class AboutDialog(QDialog):
         badge_vbox.setSpacing(8)
         badge_vbox.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
         
-        btn_version = QPushButton("v1.0.5 Beta")
+        btn_version = QPushButton("v1.1 Beta")
         btn_version.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_version.setStyleSheet("""
             QPushButton {
